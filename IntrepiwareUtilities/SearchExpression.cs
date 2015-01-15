@@ -37,7 +37,7 @@ namespace IntrepiwareUtilities.Modules
 
         public static HasValueExpression DoesNotHaveValue()
         {
-            return new HasValueExpression() { HasValue = false };
+            return new HasValueExpression() { BlankOrNullStatus = HasValueExpression.STATUS_IS_NOT_NULL };
         }
 
         public static EqualityExpression Equals(object value)
@@ -57,12 +57,22 @@ namespace IntrepiwareUtilities.Modules
 
         public static HasValueExpression HasValue()
         {
-            return new HasValueExpression() { HasValue = true };
+            return new HasValueExpression() { BlankOrNullStatus = HasValueExpression.STATUS_IS_NOT_NULL };
         }
 
         public static SetExpression<T> InSet<T>(IEnumerable<T> value)
         {
             return new SetExpression<T>() { InSet = true, Value = value };
+        }
+
+        public static HasValueExpression IsBlankOrNull()
+        {
+            return new HasValueExpression() { BlankOrNullStatus = HasValueExpression.STATUS_IS_BLANK_OR_NULL };
+        }
+
+        public static HasValueExpression IsNotBlankOrNull()
+        {
+            return new HasValueExpression() { BlankOrNullStatus = HasValueExpression.STATUS_IS_NOT_BLANK_OR_NULL };
         }
 
         public static InequalityExpression LessThan(object value)
@@ -107,8 +117,7 @@ namespace IntrepiwareUtilities.Modules
             highOperator = (HighInclusive) ? "<=" : "<";
             lowParameterName = parameterName + "___LOW";
             highParameterName = parameterName + "___HIGH";
-
-            return String.Format("and {0} {1} {2} and {3} {4} {5}",
+            return String.Format(" and {0} {1} {2} and {3} {4} {5}",
                 fieldName, lowOperator, lowParameterName, fieldName, highOperator, highParameterName);
         }
 
@@ -154,15 +163,32 @@ namespace IntrepiwareUtilities.Modules
 
     public class HasValueExpression : ISearchExpression
     {
-        public bool HasValue { get; set; }
+
+        public int BlankOrNullStatus { get; set; }
+
+        public const int STATUS_IS_NULL = 0;
+        public const int STATUS_IS_BLANK_OR_NULL = 1;
+        public const int STATUS_IS_NOT_NULL = 2;
+        public const int STATUS_IS_NOT_BLANK_OR_NULL = 3;
+
 
         public string ToSqlExpression(string fieldName, string parameterName)
         {
             parameterName = ParameterFormattingService.FormatWithAtSign(parameterName);
-            if (HasValue == true)
-            { return String.Format(" and {0} is not null", fieldName); }
-            else
-            { return String.Format(" and {0} is null", fieldName); }
+            switch(BlankOrNullStatus)
+            {
+                case STATUS_IS_NULL:
+                    return String.Format(" and {0} is null", fieldName);
+                case STATUS_IS_BLANK_OR_NULL:
+                    return String.Format(" and nullif({0}, '') is null", fieldName);
+                case STATUS_IS_NOT_NULL:
+                    return String.Format(" and {0} is not null", fieldName);
+                case STATUS_IS_NOT_BLANK_OR_NULL:
+                    return String.Format(" and nullif({0}, '') is not null", fieldName);
+                default:
+                    throw new ArgumentException("Unrecognized BlankOrNullStatus");
+            }
+
         }
 
         public object Value
