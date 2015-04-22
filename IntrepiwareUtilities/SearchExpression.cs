@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace IntrepiwareUtilities.Modules
 {
@@ -83,6 +82,11 @@ namespace IntrepiwareUtilities.Modules
         public static InequalityExpression LessThanOrEqualTo(object value)
         {
             return new InequalityExpression() { GreaterThanValue = false, EqualsValue = true, Value = value };
+        }
+
+        public static LikeExpression LikeValue(string value)
+        {
+            return new LikeExpression() { Value = value };
         }
 
         public static SetExpression<T> NotInSet<T>(IEnumerable<T> value)
@@ -238,6 +242,30 @@ namespace IntrepiwareUtilities.Modules
             return output;
         }
 
+    }
+
+    public class LikeExpression : ISearchExpression
+    {
+
+        public string ToSqlExpression(string fieldName, string parameterName)
+        {
+            parameterName = ParameterFormattingService.FormatWithAtSign(parameterName);
+            return String.Format(" and {0} like {1}", fieldName, parameterName);
+        }
+
+        public object Value
+        {
+            get;
+            set;
+        }
+
+        public Dictionary<string, object> GetDynamicParameters(string parameterName)
+        {
+            Dictionary<string, object> output = new Dictionary<string, object>();
+            parameterName = ParameterFormattingService.FormatWithoutAtSign(parameterName);
+            output.Add(parameterName, Value);
+            return output;
+        }
     }
 
     public class SetExpression<T> : ISearchExpression
